@@ -44,6 +44,10 @@ class UsbGadgetController(context: Context) {
             // sys.usb.config is set to none. Detach every other gadget before
             // binding HIDeck so the kernel accepts the new UDC assignment.
             "for U in /config/usb_gadget/*/UDC; do [ \"\$U\" = \"\$G/UDC\" ] || echo \"\" > \"\$U\" 2>/dev/null || true; done",
+            // A failed bind can leave a regular file at a hidg path after a
+            // root-side report write. Remove only non-character entries so
+            // the HID function can create its device nodes again.
+            "for N in /dev/hidg0 /dev/hidg1; do if [ -e \"\$N\" ] && [ ! -c \"\$N\" ]; then rm -f \"\$N\"; fi; done",
             "echo 0x1209 > \$G/idVendor",
             "echo 0xD001 > \$G/idProduct",
             "echo HIDeck > \$G/strings/0x409/serialnumber",
@@ -131,6 +135,8 @@ class UsbGadgetController(context: Context) {
             "rmdir \$G/configs/c.1/strings/0x409 \$G/configs/c.1/strings \$G/configs/c.1 2>/dev/null || true",
             "rmdir \$G/strings/0x409 \$G/strings 2>/dev/null || true",
             "rmdir \$G/functions \$G/configs \$G/os_desc \$G 2>/dev/null || true",
+            // Do not leave a regular file behind if a report raced teardown.
+            "for N in /dev/hidg0 /dev/hidg1; do if [ -e \"\$N\" ] && [ ! -c \"\$N\" ]; then rm -f \"\$N\"; fi; done",
             "setprop sys.usb.config ${RootShell.quote(previous)}"
         ).joinToString("; ")
         val result = RootShell.exec(cleanup)

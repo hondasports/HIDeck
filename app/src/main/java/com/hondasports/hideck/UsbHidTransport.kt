@@ -2,6 +2,7 @@ package com.hondasports.hideck
 
 import android.content.Context
 import android.util.Log
+import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -29,8 +30,18 @@ class UsbHidTransport(context: Context) : HidTransport {
         if (!gadget.isEnabled()) return Result.failure(IllegalStateException("USB gadget is not enabled"))
         return try {
             io.execute {
+                // A disconnect can race with a queued report. Do not write
+                // after the gadget has been torn down.
+                if (!gadget.isEnabled()) return@execute
                 try {
-                    FileOutputStream(path).use { it.write(report) }
+                    // A stale regular file can be left behind if a previous
+                    // bind failed. Skip it and let the root guard report the
+                    // unavailable HID endpoint instead of writing to /dev.
+                    if (!File(path).isFile) {
+                        FileOutputStream(path).use { it.write(report) }
+                        return@execute
+                    }
+                    throw IllegalStateException("HID endpoint is not a character device")
                 } catch (direct: Exception) {
                     val root = RootShell.writeBytes(path, report)
                     if (!root.isSuccess) {

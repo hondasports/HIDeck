@@ -40,7 +40,20 @@ object RootShell {
     /** Writes a short HID report through a root-owned file descriptor. */
     fun writeBytes(path: String, bytes: ByteArray): ShellResult {
         return try {
-            val process = ProcessBuilder("su", "-c", "cat > ${quote(path)}")
+            // Never let a failed gadget bind turn the target path into a
+            // regular file under /dev. The HID function must have created a
+            // character device before a report can be written.
+            val quotedPath = quote(path)
+            val command = if (path.startsWith("/dev/hidg")) {
+                "if [ -c $quotedPath ]; then cat > $quotedPath; else exit 2; fi"
+            } else {
+                "cat > $quotedPath"
+            }
+            val process = ProcessBuilder(
+                "su",
+                "-c",
+                command
+            )
                 .redirectErrorStream(false)
                 .start()
             process.outputStream.use { it.write(bytes) }
