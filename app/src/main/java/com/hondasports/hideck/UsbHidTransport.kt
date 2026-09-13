@@ -1,6 +1,7 @@
 package com.hondasports.hideck
 
 import android.content.Context
+import android.util.Log
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -30,8 +31,11 @@ class UsbHidTransport(context: Context) : HidTransport {
             io.execute {
                 try {
                     FileOutputStream(path).use { it.write(report) }
-                } catch (_: Exception) {
-                    RootShell.writeBytes(path, report)
+                } catch (direct: Exception) {
+                    val root = RootShell.writeBytes(path, report)
+                    if (!root.isSuccess) {
+                        Log.w(TAG, "USB report write failed path=$path direct=${direct.message} root=${root.stderr}")
+                    }
                 }
             }
             Result.success(Unit)
@@ -42,5 +46,9 @@ class UsbHidTransport(context: Context) : HidTransport {
 
     fun close() {
         io.shutdownNow()
+    }
+
+    companion object {
+        private const val TAG = "HIDeck"
     }
 }

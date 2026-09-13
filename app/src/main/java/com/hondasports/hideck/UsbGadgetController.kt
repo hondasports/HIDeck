@@ -141,8 +141,13 @@ class UsbGadgetController(context: Context) {
         return if (result.isSuccess) Result.success(Unit) else Result.failure(RuntimeException(result.stderr))
     }
 
-    fun keyboardPath(): String = "$GADGET/functions/hid.usb0/dev"
-    fun mousePath(): String = "$GADGET/functions/hid.usb1/dev"
+    /**
+     * The ConfigFS `dev` attribute only reports the major/minor pair; it is
+     * not a writable report endpoint. The HID function creates the matching
+     * character devices under /dev, which are the files that accept reports.
+     */
+    fun keyboardPath(): String = "/dev/hidg0"
+    fun mousePath(): String = "/dev/hidg1"
 
     companion object {
         private const val GADGET = "/config/usb_gadget/hideck"
