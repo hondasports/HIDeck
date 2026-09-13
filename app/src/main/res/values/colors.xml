@@ -1,0 +1,6 @@
+<resources>
+    <color name="hideck_background">#101418</color>
+    <color name="hideck_surface">#1B222A</color>
+    <color name="hideck_accent">#66D9EF</color>
+    <color name="hideck_text">#F2F5F7</color>
+</resources>

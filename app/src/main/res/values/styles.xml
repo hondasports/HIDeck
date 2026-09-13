@@ -1,0 +1,9 @@
+<resources>
+    <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">@color/hideck_accent</item>
+        <item name="android:navigationBarColor">@color/hideck_background</item>
+        <item name="android:statusBarColor">@color/hideck_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
