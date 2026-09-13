@@ -36,6 +36,10 @@ class TouchpadView(context: Context, private val controller: HidDeckController) 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                // The touchpad lives inside the screen's ScrollView. Keep the
+                // parent from stealing vertical drags, which are mouse
+                // movement here rather than app scrolling.
+                parent?.requestDisallowInterceptTouchEvent(true)
                 lastX = event.x
                 lastY = event.y
                 moved = false
@@ -58,6 +62,7 @@ class TouchpadView(context: Context, private val controller: HidDeckController) 
                     controller.mouse(MouseReportEncoder.LEFT)
                     controller.mouse(0)
                 }
+                parent?.requestDisallowInterceptTouchEvent(false)
                 invalidate()
                 return true
             }
