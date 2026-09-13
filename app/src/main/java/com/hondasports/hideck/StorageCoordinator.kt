@@ -20,10 +20,25 @@ class StorageCoordinator(context: Context) {
     fun ensureImage(sizeBytes: Long = 128L * 1024L * 1024L): File {
         val path = RootShell.quote(imageFile.absolutePath)
         val result = RootShell.exec(
-            "mkdir -p /data/adb; truncate -s $sizeBytes $path; chmod 600 $path"
+            // A sparse backing file makes Windows report the LUN as having
+            // bad blocks. Allocate the extents before exposing it. The
+            // media_rw label is readable by the kernel file-storage
+            // function on LineageOS; adb_data_file is denied by SELinux.
+            "mkdir -p /data/adb; " +
+                "if [ ! -e $path ]; then " +
+                "dd if=/dev/zero of=$path bs=4096 count=${(sizeBytes + 4095) / 4096} conv=fsync; " +
+                "else fallocate -l $sizeBytes $path 2>/dev/null || true; fi; " +
+                "chcon u:object_r:media_rw_data_file:s0 $path; chmod 600 $path"
         )
         if (!result.isSuccess) {
             throw IllegalStateException(result.stderr.ifBlank { result.stdout.ifBlank { "cannot create storage image" } })
+        }
+        val stats = RootShell.exec("stat -c '%s %b' $path")
+        val fields = stats.stdout.trim().split(Regex("\\s+"))
+        val actualSize = fields.getOrNull(0)?.toLongOrNull()
+        val allocatedBlocks = fields.getOrNull(1)?.toLongOrNull() ?: 0L
+        if (!stats.isSuccess || actualSize != sizeBytes || allocatedBlocks <= 0L) {
+            throw IllegalStateException("storage image is not fully allocated")
         }
         return imageFile
     }
