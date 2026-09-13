@@ -21,12 +21,18 @@ class HidDeckController(context: Context) {
 
     fun connect(selected: Mode, callback: (Result<Unit>) -> Unit) {
         work.execute {
-            // Tear down the previous transport even while it is still registering.
-            // Bluetooth HID registration is a system-wide singleton on Android.
-            transport.disconnect()
-            mode = selected
-            transport = if (selected == Mode.USB) usb else bluetooth
-            val result = transport.connect()
+            val nextTransport = if (selected == Mode.USB) usb else bluetooth
+            val sameTransport = transport === nextTransport && mode == selected
+
+            // Reuse an already-selected Bluetooth transport. Unregistering and
+            // immediately registering the system-wide HID app can race the
+            // asynchronous callback and leave Android's profile stuck pending.
+            if (!sameTransport) {
+                transport.disconnect()
+                mode = selected
+                transport = nextTransport
+            }
+            val result = nextTransport.connect()
             callback(result)
         }
     }
