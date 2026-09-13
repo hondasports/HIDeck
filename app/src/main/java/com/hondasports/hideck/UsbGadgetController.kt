@@ -120,6 +120,9 @@ class UsbGadgetController(context: Context) {
 
     fun disable(): Result<Unit> {
         if (!RootShell.hasRoot()) return Result.failure(IllegalStateException("root/Magisk is required"))
+        // Stop accepting reports before tearing the gadget down. This keeps
+        // queued mouse writes from being sent after the HID nodes disappear.
+        enabled = false
         val previous = prefs.getString("previous_usb_config", "adb") ?: "adb"
         val cleanup = listOf(
             "G=$GADGET",

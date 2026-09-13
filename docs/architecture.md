@@ -16,7 +16,7 @@ ConfigFS: hid.usb0 + hid.usb1 + mass_storage.0
 StorageCoordinator (/data/adb image + app lock file)
 ```
 
-`HidTransport` is intentionally small. The controller serializes keyboard text and key presses on a single queue, while mouse reports can be sent immediately so the touchpad remains responsive.
+`HidTransport` is intentionally small. The controller serializes keyboard text and key presses on a single queue. USB mouse movement uses a bounded, conflated queue so rapid touchpad drags stay responsive without sending stale movement after the finger is released; click and wheel reports keep their order.
 
 The USB transport creates a separate ConfigFS gadget named `hideck`. It sets a keyboard report descriptor on `hid.usb0`, a mouse descriptor on `hid.usb1`, and points `mass_storage.0/lun.0/file` at the root-owned `/data/adb/hideck-storage.img`. It saves the previous `sys.usb.config`, detaches the Android gadget while active, and restores the saved value when disconnected. A lock file in the app's private directory serializes image access; the lock is held until the gadget is torn down.
 
