@@ -1,26 +1,25 @@
 # HIDeck
 
-HIDeck turns a rooted Android phone into a small, switchable input deck. The current target is a Pixel 3 (`blueline`) running LineageOS.
+HIDeck は、root 化した Android 端末を、接続方式を切り替えられる小型の入力デッキに変えるアプリや。現在の対象は、LineageOS を搭載した Pixel 3（`blueline`）やで。
 
-The app has two independent transports:
+アプリは、互いに独立した 2 種類の Transport（通信方式）を持ってる。
 
-* **USB**: Linux ConfigFS composite gadget with a boot keyboard, a relative mouse, and a dedicated 128 MiB mass-storage image.
-* **Bluetooth**: Android's public `BluetoothHidDevice` profile with keyboard and mouse report IDs.
+* **USB**: Linux ConfigFS の複合 USB Gadget として、キーボード、相対移動マウス、専用の 128 MiB マスストレージイメージを公開する。
+* **Bluetooth**: Android の公開 `BluetoothHidDevice` プロファイルで、キーボードとマウスをレポート ID 付きで公開する。
 
-The UI provides an IME-backed text field, touchpad gestures, mouse buttons and wheel, special keys, Windows/Mac IME-switch buttons, and a saved macro. USB gadget setup is root-only and is deliberately opt-in because taking over the Android USB gadget also takes ADB off the cable until the gadget is released.
+UI には、IME 経由のテキスト入力欄、タッチパッド操作、マウスボタンとホイール、特殊キー、Windows/Mac の IME 切り替えボタン、保存可能なマクロを用意してる。USB Gadget の構成変更には root 権限が必要や。また、USB Gadget を HIDeck が使っている間は USB ケーブル上の ADB が切れるため、USB モードは明示的に開始したときだけ有効になるようにしてる。
 
-## Build
+## ビルド
 
-The repository contains a Gradle wrapper. With Android SDK Platform 36 and Build Tools 36 installed:
+このリポジトリには Gradle Wrapper が含まれてる。Android SDK Platform 36 と Build Tools 36 をインストールした環境で、次を実行してな。
 
 ```powershell
 .\gradlew.bat assembleDebug
 ```
 
-The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+デバッグ APK は `app/build/outputs/apk/debug/app-debug.apk` に出力されるで。
 
-When the phone and this PC are on the same Wi-Fi, keep development ADB off the
-USB cable so USB gadget testing does not take away the debug channel:
+スマホと PC が同じ Wi-Fi に接続されているときは、USB Gadget のテストでデバッグ経路まで奪われないよう、開発用 ADB を USB ケーブルから Wi-Fi に切り替えておくんや。
 
 ```powershell
 adb tcpip 5555
@@ -28,35 +27,37 @@ adb connect <phone-ip>:5555
 adb disconnect <usb-serial>
 ```
 
-## Install and first run
+## インストールと初回起動
 
 ```powershell
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-For Bluetooth mode, open HIDeck first and grant the Bluetooth permissions it requests. Remove any old phone pairing on the computer, then pair the computer with the phone while HIDeck is registered. Windows normally initiates the HID connection from its Bluetooth settings; the app keeps the HID Device profile registered and accepts the bonded computer. USB mode requires a working `su` provider (Magisk) and a kernel exposing `/config/usb_gadget` and a UDC.
+Bluetooth モードを使う場合は、まず HIDeck を起動して、要求された Bluetooth 権限を許可してな。PC 側に残っている古いスマホのペアリングを削除し、HIDeck が登録済みの状態で PC とスマホをもう一度ペアリングする。通常、Windows の Bluetooth 設定から PC が HID 接続を開始する。アプリは HID Device プロファイルを登録したままにして、ペアリング済みの PC からの接続を受け付けるで。
 
-USB mode exports the root-owned `/data/adb/hideck-storage.img`. The image is intentionally separate from Android's storage. The first time it appears on the host, format it there. Do not mount or modify it from Android while USB mode is active; HIDeck holds an exclusive lock for the duration of the export.
+USB モードには、動作する `su` プロバイダー（Magisk）と、`/config/usb_gadget` および UDC を公開するカーネルが必要や。
 
-## Pixel 3 / LineageOS setup
+USB モードでは root 所有の `/data/adb/hideck-storage.img` を公開する。このイメージは Android のストレージとは意図的に分離してる。ホストに初めて表示されたら、ホスト側でフォーマットしてな。USB モード中は Android 側からこのイメージをマウントしたり変更したりせんといて。HIDeck が公開中ずっと排他ロックを保持する仕組みや。
 
-Run the read-only audit before changing boot partitions:
+## Pixel 3 / LineageOS のセットアップ
+
+boot パーティションを変更する前に、読み取り専用の監査を実行してな。
 
 ```powershell
 .\scripts\pixel3-device-audit.ps1 -Serial 192.168.10.121:5555
 ```
 
-The script records the codename, LineageOS build, active slot, verified-boot state, bootloader variables, and a copy of `getprop`. It refuses to continue unless ADB is authorized and the device identifies as `blueline`.
+このスクリプトは、端末コードネーム、LineageOS のビルド、アクティブスロット、Verified Boot の状態、bootloader 変数、`getprop` のコピーを記録する。ADB が承認済みで、端末が `blueline` と識別される場合だけ続行するで。
 
-The Magisk workflow is documented in [docs/pixel3-magisk.md](docs/pixel3-magisk.md) and is implemented by `scripts/magisk-pixel3.ps1`. It requires a boot image that matches the exact installed LineageOS build. The script never chooses a random image and never flashes without `-ConfirmFlash`.
+Magisk の手順は [docs/pixel3-magisk.md](docs/pixel3-magisk.md) にまとめてあり、`scripts/magisk-pixel3.ps1` で一部を自動化してる。現在インストールされている LineageOS のビルドと完全に一致する boot image が必要や。スクリプトは適当なイメージを選ばず、`-ConfirmFlash` がない限り flash も実行せえへん。
 
-## Limitations
+## 制限事項
 
-* USB HID and ConfigFS support depends on the LineageOS kernel. A device can be rooted and still lack `hidg` or a usable UDC.
-* The **Windows IME** button sends Alt+Backquote, the Microsoft Japanese IME shortcut for 101/102-key keyboards. The encoder also exposes the Japanese Zenkaku/Hankaku (LANG5) usage for hosts that map that dedicated key. The **Mac IME** button sends Control-Space for the previous input source. Host keyboard layouts or customized shortcuts can change how these reports are interpreted.
-* Android's Bluetooth HID Device profile is asynchronous. Windows is the HID host and may require removing an old pairing and pairing again after HIDeck has registered its SDP record. A failed host-initiated attempt can leave the device paired but disconnected; tap **切断**, close/reopen HIDeck, and retry from the computer's Bluetooth settings.
-* Replacing the Android USB gadget disables ADB for the duration of USB mode. Tap **切断** to restore the prior `sys.usb.config`; if the app is force-stopped while active, unplug/replug or reboot to restore Android's normal gadget.
+* USB HID と ConfigFS の対応状況は LineageOS のカーネルに依存する。root 化済みでも `hidg` や利用可能な UDC がない端末では動作せえへん。
+* **Windows IME** ボタンは、101/102 キーボード向けの Microsoft 日本語 IME ショートカットである Alt+Backquote を送る。エンコーダーは、日本語キーボード専用キーに割り当てられているホスト向けに、日本語 Zenkaku/Hankaku（LANG5）の Usage も出力する。ホストのキーボードレイアウトや変更済みショートカットによって解釈が変わる場合があるで。
+* Android の Bluetooth HID Device プロファイルは非同期で動作する。Windows が HID ホストになり、HIDeck が SDP レコードを登録したあとでホスト側の接続が始まるため、古いペアリングを削除してから再ペアリングが必要になる場合がある。ホスト側からの接続に失敗すると、ペアリング済みやのに切断状態が残ることがある。その場合は **切断** をタップして HIDeck を閉じて再度開き、PC の Bluetooth 設定から再試行してな。
+* Android の USB Gadget を置き換えるため、USB モード中は ADB が無効になる。**切断** をタップすると、保存していた `sys.usb.config` を復元する。USB モード中にアプリを強制停止した場合は、USB を抜き差しするか再起動して Android の通常の Gadget を復元してな。
 
-## License
+## ライセンス
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0。詳細は [LICENSE](LICENSE) を確認してな。

@@ -1,31 +1,28 @@
-# Verification checklist
+# 検証チェックリスト
 
-## Host-side checks
+## ホスト側の確認
 
-* `assembleDebug` succeeds with the pinned Gradle/Kotlin/AGP versions.
-* APK installs on an API 28+ arm64 device.
-* USB mode reports a keyboard and mouse HID interface and a separate mass-storage disk.
-* Bluetooth mode registers the HID Device profile; after the host refreshes pairing, the host reports keyboard and mouse input.
+* 固定している Gradle / Kotlin / AGP のバージョンで `assembleDebug` が成功すること。
+* API 28 以上の arm64 端末へ APK をインストールできること。
+* USB モードで、キーボード HID、マウス HID、独立したマスストレージディスクがホストに表示されること。
+* Bluetooth モードで HID Device プロファイルが登録され、ホスト側でペアリングを更新したあとにキーボードとマウスの入力を受け取れること。
 
-For a phone whose USB port is being used as the gadget, use wireless ADB during
-the test (`adb tcpip 5555`, `adb connect <phone-ip>:5555`, then disconnect the
-USB serial). This keeps the control channel available while ConfigFS owns the
-physical USB connection.
+端末の USB ポートを Gadget が使う場合は、テスト中も制御経路を確保できるようワイヤレス ADB を使うで（`adb tcpip 5555`、`adb connect <phone-ip>:5555` のあと、USB シリアルを切断）。これで ConfigFS が物理 USB 接続を所有している間も操作を続けられる。
 
-## On-device checks
+## 端末側の確認
 
-* `su -c id` returns uid 0.
-* `/config/usb_gadget` and `/sys/class/udc` exist.
-* `/dev/hidg0` and `/dev/hidg1` become writable only while USB mode is active.
-* Disconnect restores the previous `sys.usb.config` and ADB becomes available again.
-* The app refuses USB mode if no root or no UDC is present.
-* The app does not expose the image while an Android-side storage lock is held.
+* `su -c id` が uid 0 を返すこと。
+* `/config/usb_gadget` と `/sys/class/udc` が存在すること。
+* USB モードが有効な間だけ `/dev/hidg0` と `/dev/hidg1` が書き込み可能になること。
+* 切断すると以前の `sys.usb.config` が復元され、ADB が再び利用できること。
+* root がない場合、または UDC がない場合、アプリが USB モードを拒否すること。
+* Android 側のストレージロックを保持している間、アプリがイメージを公開しないこと。
 
-## Manual input checks
+## 手動入力の確認
 
-1. Send `Hello, HIDeck!` from the IME field.
-2. Tap each special-key row and confirm the host action.
-3. Tap **Windows IME** on a Japanese Windows host and confirm Alt+` toggles Japanese input.
-4. Tap **Mac IME** on macOS with multiple input sources and confirm Control-Space selects the previous source.
-5. Drag and tap the touchpad; test both mouse buttons and the wheel.
-6. Save a macro, disconnect, relaunch, and send it again.
+1. IME 入力欄から `Hello, HIDeck!` を送る。
+2. 特殊キーの各行をタップして、ホスト側の動作を確認する。
+3. 日本語 Windows ホストで **Windows IME** をタップし、Alt+` で日本語入力が切り替わることを確認する。
+4. 複数の入力ソースを設定した macOS で **Mac IME** をタップし、Control+Space で前の入力ソースが選ばれることを確認する。
+5. タッチパッドをドラッグ・タップし、2 つのマウスボタンとホイールを確認する。
+6. マクロを保存して切断し、アプリを再起動してからもう一度送信する。

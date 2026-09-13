@@ -1,40 +1,39 @@
-# Pixel 3 and Magisk procedure
+# Pixel 3 と Magisk の手順
 
-This procedure is deliberately split into audit, patch, and flash. Pixel 3 is an A/B device and the `boot` partition is slot-specific, so a boot image from another LineageOS date can soft-brick the phone.
+この手順は、監査、パッチ、flash の 3 段階に分けてある。Pixel 3 は A/B 端末で `boot` パーティションもスロットごとに分かれているため、別の日付の LineageOS 用 boot image を使うと soft-brick する可能性があるで。
 
-## 1. Audit first
+## 1. 最初に監査する
 
-The audit accepts a wireless ADB endpoint, so the phone stays controllable
-while its USB port is later taken over by HIDeck.
+監査はワイヤレス ADB エンドポイントを受け付ける。あとで USB ポートを HIDeck が使うときも、端末を操作できるようにするためや。
 
 ```powershell
 .\scripts\pixel3-device-audit.ps1 -Serial 192.168.10.121:5555
 ```
 
-Keep the generated audit directory. It includes `getprop.txt`, the current slot, and fastboot variables. If the script reports `unauthorized`, unlock the phone and accept the USB debugging RSA prompt before retrying.
+生成された監査ディレクトリは残しておいてな。そこには `getprop.txt`、現在のスロット、fastboot 変数が入る。スクリプトが `unauthorized` と報告した場合は、端末のロックを解除して USB デバッグの RSA 確認ダイアログを許可してから、もう一度実行するで。
 
-The image must match all of these values:
+イメージは次の値すべてに一致せなあかん。
 
 * `ro.product.device=blueline`
-* installed LineageOS branch and build date
-* current firmware requirements for that LineageOS branch
-* active A/B slot (`_a` or `_b`)
+* インストール済み LineageOS のブランチとビルド日
+* その LineageOS ブランチが要求する現在のファームウェア
+* 現在アクティブな A/B スロット（`_a` または `_b`）
 
-Official LineageOS download pages publish `boot.img` alongside each signed build. Download the exact build shown by the audit, then verify its SHA-256. Do not use a recovery image from a different date.
+公式 LineageOS のダウンロードページには、各署名済みビルドと一緒に `boot.img` が掲載されてる。監査で確認したビルドと完全に一致するものをダウンロードして、SHA-256 を検証してな。別の日付の recovery image は使わんといて。
 
-## 2. Patch with Magisk
+## 2. Magisk でパッチする
 
-Install the official Magisk APK on the phone and copy the exact `boot.img` to `/sdcard/Download/`. In Magisk, choose **Install → Select and Patch a File**, select that file, and wait for the patched image. Pull the resulting `magisk_patched*.img` back to this computer:
+公式 Magisk APK を端末にインストールし、正しい `boot.img` を `/sdcard/Download/` にコピーする。Magisk で **インストール → パッチするファイルを選択** を選び、そのファイルを指定してパッチが終わるまで待つ。生成された `magisk_patched*.img` をこの PC に取り出すで。
 
 ```powershell
 adb -s 192.168.10.121:5555 pull /sdcard/Download/magisk_patched*.img .\work\
 ```
 
-Record the SHA-256 of both the original and patched images. Keep the unmodified original available for recovery.
+元のイメージとパッチ済みイメージの SHA-256 を両方記録してな。変更していない元イメージは復旧用に必ず残しておくんや。
 
-## 3. Flash only after checking fastboot state
+## 3. fastboot の状態を確認してから flash する
 
-Reboot to bootloader, verify the serial and read the current slot again:
+bootloader を起動し、シリアルと現在のスロットをもう一度確認するで。
 
 ```powershell
 adb -s 192.168.10.121:5555 reboot bootloader
@@ -44,7 +43,7 @@ fastboot getvar current-slot 2>&1
 fastboot getvar unlocked 2>&1
 ```
 
-The product must be `blueline`, the bootloader must be unlocked, and the slot recorded in the audit must still be active. Then use the guarded helper:
+product は `blueline`、bootloader は unlocked、監査で記録したスロットが引き続きアクティブでなければならへん。そのうえで、次のガード付きヘルパーを使う。
 
 ```powershell
 .\scripts\magisk-pixel3.ps1 `
@@ -54,4 +53,4 @@ The product must be `blueline`, the bootloader must be unlocked, and the slot re
   -ConfirmFlash
 ```
 
-The helper refuses a wrong product, missing unlock state, mismatched slot, or a missing original image. After reboot, reconnect ADB over Wi-Fi (`adb connect 192.168.10.121:5555`), check `adb shell su -c id`, open Magisk, and run the HIDeck root check. If anything fails, boot the saved unmodified image into the matching slot through fastboot before experimenting further.
+このヘルパーは、product の誤り、unlock 状態の不足、スロット不一致、元イメージの欠落がある場合は処理を拒否するで。再起動後は Wi-Fi 経由で ADB に再接続（`adb connect 192.168.10.121:5555`）して、`adb shell su -c id` を確認し、Magisk を開いて HIDeck の root チェックを実行する。うまくいかない場合は、保存しておいた変更前のイメージを、対応するスロットへ fastboot で起動してから次の確認に進んでな。

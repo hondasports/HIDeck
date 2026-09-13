@@ -1,4 +1,4 @@
-# HIDeck architecture
+# HIDeck のアーキテクチャ
 
 ```text
 MainActivity
@@ -16,10 +16,10 @@ ConfigFS: hid.usb0 + hid.usb1 + mass_storage.0
 StorageCoordinator (/data/adb image + app lock file)
 ```
 
-`HidTransport` is intentionally small. The controller serializes keyboard text and key presses on a single queue. USB mouse movement uses a bounded, conflated queue so rapid touchpad drags stay responsive without sending stale movement after the finger is released; click and wheel reports keep their order.
+`HidTransport` は意図的に小さなインターフェースにしてる。コントローラーは、キーボードのテキストとキー入力を 1 本のキューで順番に処理する。USB マウスの移動は、上限付きで最新値にまとめるキューを使うから、タッチパッドを素早くドラッグしても反応が遅れにくいし、指を離したあとに古い移動レポートを送らへん。クリックとホイールのレポートは順番を維持するで。
 
-The USB transport creates a separate ConfigFS gadget named `hideck`. It sets a keyboard report descriptor on `hid.usb0`, a mouse descriptor on `hid.usb1`, and points `mass_storage.0/lun.0/file` at the root-owned `/data/adb/hideck-storage.img`. It saves the previous `sys.usb.config`, detaches the Android gadget while active, and restores the saved value when disconnected. A lock file in the app's private directory serializes image access; the lock is held until the gadget is torn down.
+USB Transport は `hideck` という名前の独立した ConfigFS Gadget を作る。`hid.usb0` にキーボードのレポートディスクリプター、`hid.usb1` にマウスのディスクリプターを設定し、`mass_storage.0/lun.0/file` から root 所有の `/data/adb/hideck-storage.img` を参照する。開始時に既存の `sys.usb.config` を保存して Android の Gadget を切り離し、切断時に保存値を復元する。アプリのプライベートディレクトリにあるロックファイルでイメージへのアクセスを直列化し、Gadget を解体するまでロックを保持する仕組みや。
 
-`StorageCoordinator` owns an advisory lock beside the image. Any future Android-side file browser or mount feature must acquire that lock before touching the image. The host side is the only writer while the mass-storage function is linked.
+`StorageCoordinator` は、イメージの横に置く助言ロック（advisory lock）を管理する。今後 Android 側のファイルブラウザーやマウント機能を追加する場合も、イメージに触る前にこのロックを取得せなあかん。マスストレージ機能がリンクされている間は、ホスト側だけが書き込みを行うで。
 
-Bluetooth uses report ID 1 for the keyboard and report ID 2 for the mouse. HIDeck registers the public `BluetoothHidDevice` profile as a combined keyboard/mouse SDP record. The host must be paired in system settings; on Windows the host normally initiates the HID connection after the pairing is refreshed while HIDeck is open.
+Bluetooth はキーボードにレポート ID 1、マウスにレポート ID 2 を使う。HIDeck は公開されている `BluetoothHidDevice` プロファイルを、キーボードとマウスをまとめた SDP レコードとして登録する。ホストはシステム設定でペアリング済みにしておく必要がある。Windows では、HIDeck を開いた状態でペアリングを更新すると、通常はホスト側から HID 接続を開始するで。
