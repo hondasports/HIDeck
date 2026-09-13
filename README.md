@@ -7,7 +7,7 @@ The app has two independent transports:
 * **USB**: Linux ConfigFS composite gadget with a boot keyboard, a relative mouse, and a dedicated 128 MiB mass-storage image.
 * **Bluetooth**: Android's public `BluetoothHidDevice` profile with keyboard and mouse report IDs.
 
-The UI provides an IME-backed text field, touchpad gestures, mouse buttons and wheel, special keys, and a saved macro. USB gadget setup is root-only and is deliberately opt-in because taking over the Android USB gadget also takes ADB off the cable until the gadget is released.
+The UI provides an IME-backed text field, touchpad gestures, mouse buttons and wheel, special keys, Windows/Mac IME-switch buttons, and a saved macro. USB gadget setup is root-only and is deliberately opt-in because taking over the Android USB gadget also takes ADB off the cable until the gadget is released.
 
 ## Build
 
@@ -53,7 +53,7 @@ The Magisk workflow is documented in [docs/pixel3-magisk.md](docs/pixel3-magisk.
 ## Limitations
 
 * USB HID and ConfigFS support depends on the LineageOS kernel. A device can be rooted and still lack `hidg` or a usable UDC.
-* Boot keyboard reports cover the ASCII/US layout and common control keys. Unicode text needs a future Unicode input strategy.
+* The **Windows IME** button sends Alt+Backquote, the Microsoft Japanese IME shortcut for 101/102-key keyboards. The encoder also exposes the Japanese Zenkaku/Hankaku (LANG5) usage for hosts that map that dedicated key. The **Mac IME** button sends Control-Space for the previous input source. Host keyboard layouts or customized shortcuts can change how these reports are interpreted.
 * Android's Bluetooth HID Device profile is asynchronous. Windows is the HID host and may require removing an old pairing and pairing again after HIDeck has registered its SDP record. A failed host-initiated attempt can leave the device paired but disconnected; tap **切断**, close/reopen HIDeck, and retry from the computer's Bluetooth settings.
 * Replacing the Android USB gadget disables ADB for the duration of USB mode. Tap **切断** to restore the prior `sys.usb.config`; if the app is force-stopped while active, unplug/replug or reboot to restore Android's normal gadget.
 

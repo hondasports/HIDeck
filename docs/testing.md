@@ -25,5 +25,7 @@ physical USB connection.
 
 1. Send `Hello, HIDeck!` from the IME field.
 2. Tap each special-key row and confirm the host action.
-3. Drag and tap the touchpad; test both mouse buttons and the wheel.
-4. Save a macro, disconnect, relaunch, and send it again.
+3. Tap **Windows IME** on a Japanese Windows host and confirm Alt+` toggles Japanese input.
+4. Tap **Mac IME** on macOS with multiple input sources and confirm Control-Space selects the previous source.
+5. Drag and tap the touchpad; test both mouse buttons and the wheel.
+6. Save a macro, disconnect, relaunch, and send it again.

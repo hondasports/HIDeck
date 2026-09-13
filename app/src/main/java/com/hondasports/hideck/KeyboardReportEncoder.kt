@@ -10,8 +10,9 @@ object KeyboardReportEncoder {
         0x05, 0x07, 0x19, 0xE0.toByte(), 0x29, 0xE7.toByte(), 0x15, 0x00,
         0x25, 0x01, 0x75, 0x01, 0x95, 0x08, 0x81.toByte(), 0x02,
         0x95, 0x01, 0x75, 0x08, 0x81.toByte(), 0x01,
-        0x95, 0x06, 0x75, 0x08, 0x15, 0x00, 0x25, 0x65, 0x05, 0x07,
-        0x19, 0x00, 0x29, 0x65, 0x81.toByte(), 0x00, 0xC0.toByte()
+        // Include LANG5 (0x94), used by the Japanese Zenkaku/Hankaku key.
+        0x95, 0x06, 0x75, 0x08, 0x15, 0x00, 0x25, 0x94.toByte(), 0x05, 0x07,
+        0x19, 0x00, 0x29, 0x94.toByte(), 0x81.toByte(), 0x00, 0xC0.toByte()
     )
 
     private fun descriptor(vararg values: Any): ByteArray = values.map {
@@ -101,6 +102,10 @@ object KeyboardReportEncoder {
     const val KEY_END = 0x4D
     const val KEY_PAGE_UP = 0x4B
     const val KEY_PAGE_DOWN = 0x4E
+    const val KEY_BACKQUOTE = 0x35
+
+    /** USB HID LANG5: the Japanese Zenkaku/Hankaku (半角/全角) key. */
+    const val KEY_ZENKAKU_HANKAKU = 0x94
 
     fun specialStroke(label: String): KeyStroke? = when (label.uppercase()) {
         "ENTER" -> KeyStroke(KEY_ENTER)
@@ -121,6 +126,14 @@ object KeyboardReportEncoder {
         "CTRL+V" -> KeyStroke(0x19, MOD_LEFT_CTRL)
         "CTRL+X" -> KeyStroke(0x1B, MOD_LEFT_CTRL)
         "CTRL+ALT+T" -> KeyStroke(0x17, MOD_LEFT_CTRL or MOD_LEFT_ALT)
+        // Windows' 101/102-key layout (which hosts commonly assign to a
+        // generic HID keyboard) uses Alt+Backquote to toggle Japanese IME.
+        "WINDOWS IME", "WIN IME" -> KeyStroke(KEY_BACKQUOTE, MOD_LEFT_ALT)
+        // Keep the dedicated Japanese hardware key available for hosts that
+        // expose it directly instead of using the 101/102-key shortcut.
+        "WINDOWS JP IME", "WIN JP IME", "半角/全角" -> KeyStroke(KEY_ZENKAKU_HANKAKU)
+        // macOS uses Control-Space to cycle between input sources by default.
+        "MAC IME", "MAC INPUT", "MAC INPUT SOURCE" -> KeyStroke(KEY_SPACE, MOD_LEFT_CTRL)
         else -> null
     }
 }

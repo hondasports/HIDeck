@@ -130,6 +130,21 @@ class MainActivity : Activity() {
             root.addView(row)
         }
 
+        root.addView(sectionLabel("IME切替"))
+        root.addView(TextView(this).apply {
+            text = "WindowsはAlt+`、MacはCtrl+Spaceを送るで。ホスト側でショートカットを変更している場合は設定に合わせてな。"
+            textSize = 12f
+            setTextColor(Color.LTGRAY)
+        })
+        val imeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        imeRow.addView(button("Windows IME") {
+            KeyboardReportEncoder.specialStroke("Windows IME")?.let(controller::tapKey)
+        }, weight(1f))
+        imeRow.addView(button("Mac IME") {
+            KeyboardReportEncoder.specialStroke("Mac IME")?.let(controller::tapKey)
+        }, weight(1f))
+        root.addView(imeRow)
+
         root.addView(sectionLabel("マクロ"))
         macroInput = EditText(this).apply {
             hint = "よく使う文字列を保存"
